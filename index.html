@@ -45,6 +45,7 @@
       margin-top: 20px;
       height: 256px;
       display: flex;
+      flex-direction: column;
       justify-content: center;
       align-items: center;
     }
@@ -56,6 +57,14 @@
     #qrcode-canvas.visible {
       display: inline-block;
       opacity: 1;
+    }
+    #ios-img-preview {
+      display: none;
+      width: 256px;
+      height: 256px;
+      margin-top: 10px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
     }
     #copy-alert {
       margin-top: 10px;
@@ -80,9 +89,10 @@
       <button class="btn download" onclick="downloadQRCode()">Download</button>
     </div>
     <div id="copy-alert">Copied to clipboard!</div>
-    <div id="ios-warning">Tap and hold the QR code to save or share (iOS Safari does not support direct copy).</div>
+    <div id="ios-warning">Tap and hold the QR image below to save or share (iOS Safari workaround).</div>
     <div id="qrcode-container">
       <canvas id="qrcode-canvas" width="256" height="256"></canvas>
+      <img id="ios-img-preview" alt="QR code preview" />
     </div>
   </div>
 
@@ -91,11 +101,15 @@
     const ctx = canvas.getContext("2d");
     const inputField = document.getElementById("linkInput");
     const iosWarning = document.getElementById("ios-warning");
+    const iosImage = document.getElementById("ios-img-preview");
 
     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
     const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
-    if (isIOS && isSafari) {
+    const showIOSImage = isIOS && isSafari;
+
+    if (showIOSImage) {
       iosWarning.style.display = "block";
+      iosImage.style.display = "block";
     }
 
     function generateQRCode() {
@@ -127,6 +141,10 @@
           ctx.fillText("BPN", canvas.width / 2 - 16, canvas.height / 2 + 6);
 
           canvas.classList.add("visible");
+
+          if (showIOSImage) {
+            iosImage.src = canvas.toDataURL("image/png");
+          }
         };
         tempImage.src = img.src;
       }, 300);
@@ -155,7 +173,7 @@
             alert.style.display = "block";
           });
         } else {
-          alert.textContent = "Tap and hold the QR to copy or save manually.";
+          alert.textContent = "Tap and hold the QR image below to save it manually.";
           alert.style.display = "block";
         }
       });
