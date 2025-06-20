@@ -63,6 +63,12 @@
       font-size: 14px;
       display: none;
     }
+    #ios-warning {
+      margin-top: 10px;
+      color: #b00;
+      font-size: 13px;
+      display: none;
+    }
   </style>
 </head>
 <body>
@@ -74,6 +80,7 @@
       <button class="btn download" onclick="downloadQRCode()">Download</button>
     </div>
     <div id="copy-alert">Copied to clipboard!</div>
+    <div id="ios-warning">Tap and hold the QR code to save or share (iOS Safari does not support direct copy).</div>
     <div id="qrcode-container">
       <canvas id="qrcode-canvas" width="256" height="256"></canvas>
     </div>
@@ -83,6 +90,13 @@
     const canvas = document.getElementById("qrcode-canvas");
     const ctx = canvas.getContext("2d");
     const inputField = document.getElementById("linkInput");
+    const iosWarning = document.getElementById("ios-warning");
+
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+    const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+    if (isIOS && isSafari) {
+      iosWarning.style.display = "block";
+    }
 
     function generateQRCode() {
       const input = inputField.value.trim();
@@ -120,18 +134,30 @@
 
     function copyQRCodeImage() {
       const alert = document.getElementById("copy-alert");
-      if (!navigator.clipboard || !canvas) {
-        alert("Clipboard API not supported");
+
+      if (!canvas || !canvas.toBlob) {
+        alert.textContent = "Your browser doesn't support copying.";
+        alert.style.display = "block";
         return;
       }
+
       canvas.toBlob(blob => {
-        const item = new ClipboardItem({ "image/png": blob });
-        navigator.clipboard.write([item]).then(() => {
+        if (navigator.clipboard && window.ClipboardItem) {
+          const item = new ClipboardItem({ "image/png": blob });
+          navigator.clipboard.write([item]).then(() => {
+            alert.textContent = "Copied to clipboard!";
+            alert.style.display = "block";
+            setTimeout(() => {
+              alert.style.display = "none";
+            }, 1500);
+          }).catch(() => {
+            alert.textContent = "Copy failed. Try manual download.";
+            alert.style.display = "block";
+          });
+        } else {
+          alert.textContent = "Tap and hold the QR to copy or save manually.";
           alert.style.display = "block";
-          setTimeout(() => {
-            alert.style.display = "none";
-          }, 1500);
-        });
+        }
       });
     }
 
@@ -148,4 +174,3 @@
   </script>
 </body>
 </html>
-
