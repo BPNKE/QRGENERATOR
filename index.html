@@ -161,6 +161,30 @@
 
     function copyQRCodeImage() {
       const alert = document.getElementById("copy-alert");
+      if (showIOSImage && iosImage.src) {
+        fetch(iosImage.src)
+          .then(res => res.blob())
+          .then(blob => {
+            if (navigator.clipboard && window.ClipboardItem) {
+              const item = new ClipboardItem({ "image/png": blob });
+              navigator.clipboard.write([item]).then(() => {
+                alert.textContent = "Copied to clipboard!";
+                alert.style.display = "block";
+                setTimeout(() => {
+                  alert.style.display = "none";
+                }, 1500);
+              }).catch(() => {
+                alert.textContent = "Copy failed. Try tap and hold to save.";
+                alert.style.display = "block";
+              });
+            } else {
+              alert.textContent = "Tap and hold the QR image below to save it manually.";
+              alert.style.display = "block";
+            }
+          });
+        return;
+      }
+
       if (!canvas || !canvas.toBlob) {
         alert.textContent = "Your browser doesn't support copying.";
         alert.style.display = "block";
