@@ -6,11 +6,22 @@
   <title>QR Code Generator with BPN, Copy & Download</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <style>
-    body {
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
       font-family: Arial, sans-serif;
-      text-align: center;
-      padding: 2em;
       background-color: #f9f9f9;
+    }
+    .container {
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+    h2 {
+      margin-bottom: 10px;
     }
     input {
       width: 300px;
@@ -27,25 +38,13 @@
       border-radius: 4px;
       color: white;
     }
-    .generate { background-color: #4CAF50; }
     .copy { background-color: #2196F3; }
     .download { background-color: #FF9800; }
     #qrcode-container {
       position: relative;
-      display: inline-block;
-      margin-top: 30px;
-    }
-    #bpn-label {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      font-weight: bold;
-      font-size: 16px;
-      background: white;
-      padding: 2px 6px;
-      border-radius: 3px;
-      pointer-events: none;
+      margin-top: 20px;
+      display: flex;
+      justify-content: center;
     }
     #copy-alert {
       margin-top: 10px;
@@ -56,78 +55,82 @@
   </style>
 </head>
 <body>
-  <h2>QR Code Generator</h2>
-  <input type="text" id="linkInput" placeholder="Enter URL or text" />
-  <br/>
-  <button class="btn generate" onclick="generateQRCode()">Generate</button>
-  <button class="btn copy" onclick="copyToClipboard()">Copy</button>
-  <button class="btn download" onclick="downloadQRCode()">Download</button>
-  <div id="copy-alert">Copied to clipboard!</div>
-
-  <div id="qrcode-container">
-    <div id="qrcode"></div>
-    <div id="bpn-label" style="display: none;">BPN</div>
+  <div class="container">
+    <h2>QR Code Generator</h2>
+    <input type="text" id="linkInput" placeholder="Enter URL or text" oninput="generateQRCode()" />
+    <div>
+      <button class="btn copy" onclick="copyQRCodeImage()">Copy</button>
+      <button class="btn download" onclick="downloadQRCode()">Download</button>
+    </div>
+    <div id="copy-alert">Copied to clipboard!</div>
+    <div id="qrcode-container">
+      <canvas id="qrcode-canvas" width="256" height="256" style="display: none;"></canvas>
+    </div>
   </div>
 
   <script>
-    let lastQRCodeCanvas = null;
+    let lastQRCodeCanvas = document.getElementById("qrcode-canvas");
 
     function generateQRCode() {
       const input = document.getElementById("linkInput").value.trim();
-      const qrDiv = document.getElementById("qrcode");
-      const bpnLabel = document.getElementById("bpn-label");
+      const canvas = document.getElementById("qrcode-canvas");
+      const ctx = canvas.getContext("2d");
+      canvas.style.display = "none";
 
-      qrDiv.innerHTML = "";
-      bpnLabel.style.display = "none";
-      lastQRCodeCanvas = null;
+      if (!input) return;
 
-      if (input !== "") {
-        const qr = new QRCode(qrDiv, {
-          text: input,
-          width: 256,
-          height: 256,
-        });
+      const tempDiv = document.createElement("div");
+      const qr = new QRCode(tempDiv, {
+        text: input,
+        width: 256,
+        height: 256,
+      });
 
-        // Wait a bit to ensure QR is rendered, then store canvas
-        setTimeout(() => {
-          bpnLabel.style.display = "block";
-          const img = qrDiv.querySelector("img");
-          if (img) {
-            // convert image to canvas for download
-            const canvas = document.createElement("canvas");
-            canvas.width = img.width;
-            canvas.height = img.height;
-            const ctx = canvas.getContext("2d");
-            ctx.drawImage(img, 0, 0);
-            // Optional: Add "BPN" to canvas
-            ctx.font = "bold 18px Arial";
-            ctx.fillStyle = "white";
-            ctx.fillRect(canvas.width/2 - 20, canvas.height/2 - 12, 40, 24);
-            ctx.fillStyle = "black";
-            ctx.fillText("BPN", canvas.width/2 - 16, canvas.height/2 + 6);
-            lastQRCodeCanvas = canvas;
-          }
-        }, 300);
-      }
+      setTimeout(() => {
+        const img = tempDiv.querySelector("img");
+        if (!img) return;
+
+        const tempImage = new Image();
+        tempImage.onload = function() {
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          ctx.drawImage(tempImage, 0, 0);
+
+          ctx.font = "bold 18px Arial";
+          ctx.fillStyle = "white";
+          ctx.fillRect(canvas.width / 2 - 20, canvas.height / 2 - 12, 40, 24);
+          ctx.fillStyle = "black";
+          ctx.fillText("BPN", canvas.width / 2 - 16, canvas.height / 2 + 6);
+
+          canvas.style.display = "inline-block";
+        };
+        tempImage.src = img.src;
+      }, 300);
     }
 
-    function copyToClipboard() {
-      const input = document.getElementById("linkInput");
+    function copyQRCodeImage() {
+      const canvas = document.getElementById("qrcode-canvas");
       const alert = document.getElementById("copy-alert");
-      input.select();
-      input.setSelectionRange(0, 99999);
-      document.execCommand("copy");
-      alert.style.display = "block";
-      setTimeout(() => {
-        alert.style.display = "none";
-      }, 1500);
+      if (!navigator.clipboard || !canvas) {
+        alert("Clipboard API not supported");
+        return;
+      }
+      canvas.toBlob(blob => {
+        const item = new ClipboardItem({ "image/png": blob });
+        navigator.clipboard.write([item]).then(() => {
+          alert.style.display = "block";
+          setTimeout(() => {
+            alert.style.display = "none";
+          }, 1500);
+        });
+      });
     }
 
     function downloadQRCode() {
-      if (lastQRCodeCanvas) {
+      const canvas = document.getElementById("qrcode-canvas");
+      if (canvas && canvas.style.display !== "none") {
         const link = document.createElement("a");
         link.download = "qrcode_bpn.png";
-        link.href = lastQRCodeCanvas.toDataURL("image/png");
+        link.href = canvas.toDataURL("image/png");
         link.click();
       } else {
         alert("Please generate a QR code first.");
