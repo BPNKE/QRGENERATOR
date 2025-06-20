@@ -43,8 +43,19 @@
     #qrcode-container {
       position: relative;
       margin-top: 20px;
+      height: 256px;
       display: flex;
       justify-content: center;
+      align-items: center;
+    }
+    #qrcode-canvas {
+      display: none;
+      opacity: 0;
+      transition: opacity 0.3s ease-in-out;
+    }
+    #qrcode-canvas.visible {
+      display: inline-block;
+      opacity: 1;
     }
     #copy-alert {
       margin-top: 10px;
@@ -64,18 +75,18 @@
     </div>
     <div id="copy-alert">Copied to clipboard!</div>
     <div id="qrcode-container">
-      <canvas id="qrcode-canvas" width="256" height="256" style="display: none;"></canvas>
+      <canvas id="qrcode-canvas" width="256" height="256"></canvas>
     </div>
   </div>
 
   <script>
-    let lastQRCodeCanvas = document.getElementById("qrcode-canvas");
+    const canvas = document.getElementById("qrcode-canvas");
+    const ctx = canvas.getContext("2d");
+    const inputField = document.getElementById("linkInput");
 
     function generateQRCode() {
-      const input = document.getElementById("linkInput").value.trim();
-      const canvas = document.getElementById("qrcode-canvas");
-      const ctx = canvas.getContext("2d");
-      canvas.style.display = "none";
+      const input = inputField.value.trim();
+      canvas.classList.remove("visible");
 
       if (!input) return;
 
@@ -101,14 +112,13 @@
           ctx.fillStyle = "black";
           ctx.fillText("BPN", canvas.width / 2 - 16, canvas.height / 2 + 6);
 
-          canvas.style.display = "inline-block";
+          canvas.classList.add("visible");
         };
         tempImage.src = img.src;
       }, 300);
     }
 
     function copyQRCodeImage() {
-      const canvas = document.getElementById("qrcode-canvas");
       const alert = document.getElementById("copy-alert");
       if (!navigator.clipboard || !canvas) {
         alert("Clipboard API not supported");
@@ -126,8 +136,7 @@
     }
 
     function downloadQRCode() {
-      const canvas = document.getElementById("qrcode-canvas");
-      if (canvas && canvas.style.display !== "none") {
+      if (canvas && canvas.classList.contains("visible")) {
         const link = document.createElement("a");
         link.download = "qrcode_bpn.png";
         link.href = canvas.toDataURL("image/png");
@@ -139,3 +148,4 @@
   </script>
 </body>
 </html>
+
