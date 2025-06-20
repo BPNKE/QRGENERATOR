@@ -110,12 +110,11 @@
     if (showIOSImage) {
       iosWarning.style.display = "block";
       iosImage.style.display = "block";
+      canvas.remove();
     }
 
     function generateQRCode() {
       const input = inputField.value.trim();
-      canvas.classList.remove("visible");
-
       if (!input) return;
 
       const tempDiv = document.createElement("div");
@@ -131,19 +130,29 @@
 
         const tempImage = new Image();
         tempImage.onload = function() {
-          ctx.clearRect(0, 0, canvas.width, canvas.height);
-          ctx.drawImage(tempImage, 0, 0);
-
-          ctx.font = "bold 18px Arial";
-          ctx.fillStyle = "white";
-          ctx.fillRect(canvas.width / 2 - 20, canvas.height / 2 - 12, 40, 24);
-          ctx.fillStyle = "black";
-          ctx.fillText("BPN", canvas.width / 2 - 16, canvas.height / 2 + 6);
-
-          canvas.classList.add("visible");
+          if (!showIOSImage) {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(tempImage, 0, 0);
+            ctx.font = "bold 18px Arial";
+            ctx.fillStyle = "white";
+            ctx.fillRect(canvas.width / 2 - 20, canvas.height / 2 - 12, 40, 24);
+            ctx.fillStyle = "black";
+            ctx.fillText("BPN", canvas.width / 2 - 16, canvas.height / 2 + 6);
+            canvas.classList.add("visible");
+          }
 
           if (showIOSImage) {
-            iosImage.src = canvas.toDataURL("image/png");
+            const tempCanvas = document.createElement("canvas");
+            tempCanvas.width = 256;
+            tempCanvas.height = 256;
+            const tempCtx = tempCanvas.getContext("2d");
+            tempCtx.drawImage(tempImage, 0, 0);
+            tempCtx.font = "bold 18px Arial";
+            tempCtx.fillStyle = "white";
+            tempCtx.fillRect(tempCanvas.width / 2 - 20, tempCanvas.height / 2 - 12, 40, 24);
+            tempCtx.fillStyle = "black";
+            tempCtx.fillText("BPN", tempCanvas.width / 2 - 16, tempCanvas.height / 2 + 6);
+            iosImage.src = tempCanvas.toDataURL("image/png");
           }
         };
         tempImage.src = img.src;
@@ -152,13 +161,11 @@
 
     function copyQRCodeImage() {
       const alert = document.getElementById("copy-alert");
-
       if (!canvas || !canvas.toBlob) {
         alert.textContent = "Your browser doesn't support copying.";
         alert.style.display = "block";
         return;
       }
-
       canvas.toBlob(blob => {
         if (navigator.clipboard && window.ClipboardItem) {
           const item = new ClipboardItem({ "image/png": blob });
